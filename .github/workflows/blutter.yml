@@ -38,18 +38,17 @@ jobs:
           ls -lh apk_input/
           file apk_input/target.apk
 
-      - name: Extract libapp.so from APK
+      - name: Extract libs from APK
         run: |
           cd apk_input
-          unzip -o target.apk "lib/*/libapp.so" -d extracted 2>/dev/null || true
+          unzip -o target.apk "lib/*/libapp.so" "lib/*/libflutter.so" -d extracted 2>/dev/null || true
+          # Copy libapp.so (any arch)
           find extracted -name "libapp.so" -exec cp {} . \;
-          if [ ! -f libapp.so ]; then
-            echo "Trying alternative extraction..."
-            unzip -o target.apk "*.so" -d extracted 2>/dev/null || true
-            find extracted -name "libapp.so" -exec cp {} . \;
-          fi
-          ls -lh libapp.so 2>/dev/null || echo "ERROR: libapp.so not found in APK"
-          echo "=== All .so files in APK ==="
+          # Copy libflutter.so (any arch)
+          find extracted -name "libflutter.so" -exec cp {} . \;
+          echo "=== Extracted files ==="
+          ls -lh libapp.so libflutter.so 2>/dev/null || echo "Missing files!"
+          echo "=== All .so in APK ==="
           find extracted -name "*.so" 2>/dev/null | head -20
 
       - name: Run Blutter
