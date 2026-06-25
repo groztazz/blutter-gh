@@ -25,8 +25,9 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq cmake ninja-build g++ git unzip wget python3-pip
-          pip install requests
+          sudo apt-get install -y -qq cmake ninja-build g++ git unzip wget \
+            python3-pyelftools python3-requests pkg-config libicu-dev libcapstone-dev
+          pip install pyelftools requests
 
       - name: Clone Blutter
         run: |
