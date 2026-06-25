@@ -55,7 +55,7 @@ jobs:
       - name: Run Blutter
         run: |
           cd blutter_repo
-          python blutter.py ../apk_input --output ../blutter_output
+          python blutter.py ../apk_input ../blutter_output
 
       - name: List output
         run: |
