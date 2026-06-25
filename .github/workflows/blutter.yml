@@ -1,0 +1,59 @@
+name: Blutter - Flutter APK Reverse Engineering
+
+on:
+  workflow_dispatch:
+    inputs:
+      apk_url:
+        description: 'URL or path to APK file in repo'
+        required: true
+        type: string
+
+jobs:
+  blutter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ git unzip wget
+
+      - name: Clone Blutter
+        run: |
+          git clone https://github.com/aspect-apps/blutter.git
+          cd blutter
+          pip install -r requirements.txt
+
+      - name: Download APK (if URL provided)
+        if: startsWith(github.event.inputs.apk_url, 'http')
+        run: |
+          wget -O target.apk "${{ github.event.inputs.apk_url }}"
+          mkdir -p apk_input
+          cp target.apk apk_input/
+
+      - name: Copy APK (if local path)
+        if: ${{ !startsWith(github.event.inputs.apk_url, 'http') }}
+        run: |
+          mkdir -p apk_input
+          cp "${{ github.event.inputs.apk_url }}" apk_input/
+
+      - name: Run Blutter
+        run: |
+          cd blutter
+          python blutter.py ../apk_input --output ../blutter_output
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: blutter-output
+          path: blutter_output/
+          retention-days: 30
