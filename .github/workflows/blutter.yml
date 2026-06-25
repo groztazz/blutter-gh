@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       apk_url:
-        description: 'URL or path to APK file in repo'
+        description: 'Direct download URL to APK file'
         required: true
         type: string
 
@@ -24,32 +24,37 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake g++ git unzip wget
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cmake g++ git unzip wget
+          pip install --upgrade pip
 
       - name: Clone Blutter
         run: |
-          git clone https://github.com/aspect-apps/blutter.git
-          cd blutter
+          git clone https://github.com/aspect-apps/blutter.git blutter_repo
+          cd blutter_repo
           pip install -r requirements.txt
 
-      - name: Download APK (if URL provided)
-        if: startsWith(github.event.inputs.apk_url, 'http')
-        run: |
-          wget -O target.apk "${{ github.event.inputs.apk_url }}"
-          mkdir -p apk_input
-          cp target.apk apk_input/
-
-      - name: Copy APK (if local path)
-        if: ${{ !startsWith(github.event.inputs.apk_url, 'http') }}
+      - name: Download APK
         run: |
           mkdir -p apk_input
-          cp "${{ github.event.inputs.apk_url }}" apk_input/
+          wget -q --show-progress -O apk_input/target.apk "${{ github.event.inputs.apk_url }}"
+          ls -lh apk_input/
+          file apk_input/target.apk
 
       - name: Run Blutter
         run: |
-          cd blutter
+          cd blutter_repo
           python blutter.py ../apk_input --output ../blutter_output
+
+      - name: List output
+        run: |
+          echo "=== Blutter Output ==="
+          find blutter_output/ -type f | head -50
+          echo "---"
+          if [ -f blutter_output/pp.txt ]; then
+            echo "=== Assembly preview (first 100 lines) ==="
+            head -100 blutter_output/pp.txt
+          fi
 
       - name: Upload results
         uses: actions/upload-artifact@v4
