@@ -25,14 +25,11 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq cmake g++ git unzip wget
-          pip install --upgrade pip
+          sudo apt-get install -y -qq cmake ninja-build g++ git unzip wget python3-pip
 
       - name: Clone Blutter
         run: |
-          git clone https://github.com/aspect-apps/blutter.git blutter_repo
-          cd blutter_repo
-          pip install -r requirements.txt
+          git clone --depth 1 https://github.com/worawit/blutter.git blutter_repo
 
       - name: Download APK
         run: |
@@ -40,6 +37,20 @@ jobs:
           wget -q --show-progress -O apk_input/target.apk "${{ github.event.inputs.apk_url }}"
           ls -lh apk_input/
           file apk_input/target.apk
+
+      - name: Extract libapp.so from APK
+        run: |
+          cd apk_input
+          unzip -o target.apk "lib/*/libapp.so" -d extracted 2>/dev/null || true
+          find extracted -name "libapp.so" -exec cp {} . \;
+          if [ ! -f libapp.so ]; then
+            echo "Trying alternative extraction..."
+            unzip -o target.apk "*.so" -d extracted 2>/dev/null || true
+            find extracted -name "libapp.so" -exec cp {} . \;
+          fi
+          ls -lh libapp.so 2>/dev/null || echo "ERROR: libapp.so not found in APK"
+          echo "=== All .so files in APK ==="
+          find extracted -name "*.so" 2>/dev/null | head -20
 
       - name: Run Blutter
         run: |
@@ -49,11 +60,11 @@ jobs:
       - name: List output
         run: |
           echo "=== Blutter Output ==="
-          find blutter_output/ -type f | head -50
+          find blutter_output/ -type f 2>/dev/null | head -50
           echo "---"
           if [ -f blutter_output/pp.txt ]; then
-            echo "=== Assembly preview (first 100 lines) ==="
-            head -100 blutter_output/pp.txt
+            echo "=== Assembly preview (first 200 lines) ==="
+            head -200 blutter_output/pp.txt
           fi
 
       - name: Upload results
